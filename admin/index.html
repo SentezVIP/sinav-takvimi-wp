@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetici Paneli - Sınav Takvimi</title>
+    
+    <!-- Temel Stil Kütüphaneleri -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Flatpickr Takvim Kütüphanesi -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+    
+    <!-- FullCalendar Kütüphanesi -->
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.css' rel='stylesheet' />
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.css' rel='stylesheet' />
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #f1f5f9;
+            --accent-color: #ec4899;
+            --success-color: #22c55e;
+            --warning-color: #eab308;
+            --danger-color: #ef4444;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --background-color: #f8fafc;
+            
+            /* Takvim için yeni renkler */
+            --calendar-bg: #ffffff;
+            --calendar-header-bg: #f8f9fa;
+            --calendar-border: #e5e7eb;
+            --calendar-text: #374151;
+            --calendar-text-muted: #9ca3af;
+            --calendar-text-month: #1f2937;
+            --calendar-text-weekday: #6b7280;
+            --calendar-text-day: #4b5563;
+            --calendar-today-bg: #fef3c7;
+            --calendar-today-text: #92400e;
+            --calendar-selected-bg: #4b5563;
+            --calendar-selected-text: #ffffff;
+            --calendar-hover-bg: #f3f4f6;
+            --calendar-weekend: #ef4444;
+            --calendar-disabled: #d1d5db;
+            
+            /* Saat seçici için yeni renkler */
+            --time-picker-bg: #f8fafc;
+            --time-picker-border: #e2e8f0;
+            --time-picker-text: #1e293b;
+            --time-picker-hover: #f1f5f9;
+            --time-picker-active: #e2e8f0;
+            --time-picker-arrow: #64748b;
+            --time-picker-arrow-hover: #334155;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        .navbar {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-brand i {
+            font-size: 1.25rem;
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            color: var(--danger-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            color: var(--accent-color);
+        }
+
+        .container {
+            padding: 2rem 1rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--secondary-color);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-control {
+            border-radius: 12px;
+            border: 2px solid var(--secondary-color);
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .exam-list {
+            margin-top: 2rem;
+        }
+
+        .exam-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .exam-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .exam-info {
+            flex: 1;
+        }
+
+        .exam-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .exam-details {
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .exam-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Flatpickr Özelleştirmeleri */
+        .flatpickr-calendar {
+            background: var(--calendar-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--calendar-border);
+            font-family: 'Poppins', sans-serif;
+            margin-top: 8px;
+            width: 330px;
+            padding: 16px;
+        }
+
+        .flatpickr-months {
+            background: var(--calendar-header-bg);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .flatpickr-month {
+            color: var(--calendar-text-month);
+            fill: var(--calendar-text-month);
+            height: 34px;
+        }
+
+        .flatpickr-current-month {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--calendar-text-month);
+            padding: 0;
+        }
+
+        .flatpickr-monthDropdown-months {
+            font-weight: 600;
+            color: var(--calendar-text-month);
+            background-color: transparent;
+        }
+
+        .flatpickr-monthDropdown-month {
+            color: var(--calendar-text-day);
+            background-color: var(--calendar-bg);
+        }
+
+        .flatpickr-weekdays {
+            background: transparent;
+            padding: 8px 0;
+            height: 36px;
+            margin-bottom: 4px;
+        }
+
+        .flatpickr-weekday {
+            color: var(--calendar-text-weekday);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .flatpickr-weekday.flatpickr-weekend {
+            color: var(--calendar-weekend);
+        }
+
+        .flatpickr-day {
+            border-radius: 8px;
+            color: var(--calendar-text-day);
+            font-weight: 500;
+            height: 38px;
+            line-height: 38px;
+            margin: 2px;
+            border: 1px solid transparent;
+        }
+
+        .flatpickr-day.selected {
+            background: var(--calendar-selected-bg);
+            color: var(--calendar-selected-text);
+            border-color: transparent;
+            font-weight: 600;
+        }
+
+        .flatpickr-day.today {
+            background: var(--calendar-today-bg);
+            color: var(--calendar-today-text);
+            font-weight: 600;
+            border: none;
+        }
+
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            color: var(--calendar-text-muted);
+            font-weight: 400;
+        }
+
+        .flatpickr-day.disabled {
+            color: var(--calendar-disabled);
+            font-weight: 400;
+            text-decoration: line-through;
+        }
+
+        .flatpickr-day:hover {
+            background: var(--calendar-hover-bg);
+        }
+
+        .flatpickr-day.inRange {
+            background: var(--calendar-range-bg);
+            border-color: transparent;
+            box-shadow: -5px 0 0 var(--calendar-range-bg), 5px 0 0 var(--calendar-range-bg);
+        }
+
+        /* Saat seçici stilleri */
+        .flatpickr-time {
+            background: var(--time-picker-bg);
+            border-radius: 8px;
+            border: 1px solid var(--time-picker-border);
+            margin-top: 12px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .flatpickr-time input {
+            background: transparent;
+            color: var(--time-picker-text);
+            font-weight: 600;
+            font-size: 1.1rem;
+            height: 46px;
+            padding: 0 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .flatpickr-time input:hover {
+            background: var(--time-picker-hover);
+        }
+
+        .flatpickr-time input:focus {
+            background: var(--time-picker-active);
+        }
+
+        .flatpickr-time .numInputWrapper {
+            height: 46px;
+            position: relative;
+        }
+
+        .flatpickr-time .numInputWrapper span {
+            border: none;
+            opacity: 1;
+            padding: 0 8px;
+            height: 23px;
+            line-height: 23px;
+            color: var(--time-picker-arrow);
+            transition: all 0.2s ease;
+        }
+
+        .flatpickr-time .numInputWrapper span:hover {
+            background: var(--time-picker-hover);
+            color: var(--time-picker-arrow-hover);
+        }
+
+        .flatpickr-time .numInputWrapper span.arrowUp:after {
+            border-bottom-color: currentColor;
+        }
+
+        .flatpickr-time .numInputWrapper span.arrowDown:after {
+            border-top-color: currentColor;
+        }
+
+        .flatpickr-time .flatpickr-am-pm {
+            color: var(--time-picker-text);
+            font-weight: 600;
+            font-size: 0.9rem;
+            height: 46px;
+            line-height: 46px;
+            padding: 0 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .flatpickr-time .flatpickr-am-pm:hover {
+            background: var(--time-picker-hover);
+        }
+
+        .flatpickr-time .flatpickr-time-separator {
+            color: var(--time-picker-text);
+            font-weight: 600;
+            padding: 0 4px;
+        }
+
+        /* Saat seçici için özel scroll bar */
+        .flatpickr-time input::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .flatpickr-time input::-webkit-scrollbar-track {
+            background: var(--time-picker-hover);
+            border-radius: 3px;
+        }
+
+        .flatpickr-time input::-webkit-scrollbar-thumb {
+            background: var(--time-picker-arrow);
+            border-radius: 3px;
+        }
+
+        .flatpickr-time input::-webkit-scrollbar-thumb:hover {
+            background: var(--time-picker-arrow-hover);
+        }
+
+        /* Form alanı iyileştirmeleri */
+        .form-control#examDateTime {
+            background: white url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="%234b5563" d="M152 24c0-13.3-10.7-24-24-24s-24 10.7-24 24V64H64C28.7 64 0 92.7 0 128v320c0 35.3 28.7 64 64 64h320c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64h-40V24c0-13.3-10.7-24-24-24s-24 10.7-24 24V64H152V24zM48 192H400V448c0 8.8-7.2 16-16 16H64c-8.8 0-16-7.2-16-16V192zm176 80v48h48c13.3 0 24 10.7 24 24s-10.7 24-24 24h-48v48c0 13.3-10.7 24-24 24s-24-10.7-24-24v-48h-48c-13.3 0-24-10.7-24-24s10.7-24 24-24h48v-48c0-13.3 10.7-24 24-24s24 10.7 24 24z"/></svg>') no-repeat right 12px center/20px auto;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--calendar-text-day);
+        }
+
+        .form-control#examDateTime::placeholder {
+            color: var(--calendar-text-muted);
+            opacity: 0.7;
+        }
+
+        .form-control#examDateTime:focus {
+            background-color: white;
+            border-color: var(--calendar-text);
+            box-shadow: 0 0 0 3px rgba(73, 80, 87, 0.15);
+        }
+
+        /* Etkinlik Renk Kodları */
+        .event-primary {
+            background-color: var(--event-primary) !important;
+            border-color: var(--primary-color) !important;
+            color: var(--primary-dark) !important;
+        }
+
+        .event-secondary {
+            background-color: var(--event-secondary) !important;
+            border-color: var(--text-light) !important;
+            color: var(--text-color) !important;
+        }
+
+        .event-success {
+            background-color: var(--event-success) !important;
+            border-color: var(--success-color) !important;
+            color: #166534 !important;
+        }
+
+        .event-warning {
+            background-color: var(--event-warning) !important;
+            border-color: var(--warning-color) !important;
+            color: #854d0e !important;
+        }
+
+        .event-danger {
+            background-color: var(--event-danger) !important;
+            border-color: var(--danger-color) !important;
+            color: #991b1b !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-graduation-cap"></i>
+                Sınav Takvimi Yönetimi
+            </a>
+            <div class="admin-info">
+                <div class="admin-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="d-none d-md-block">
+                    <div class="fw-bold" id="adminName">Yönetici</div>
+                    <div class="text-muted small" id="adminEmail">admin@example.com</div>
+                </div>
+                <a href="#" class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="d-none d-md-inline">Çıkış Yap</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Sınav Ekleme Kartı -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-plus-circle"></i>
+                    Yeni Sınav Ekle
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="examForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sınav Adı</label>
+                            <input type="text" class="form-control" id="examName" placeholder="Örn: Matematik Final" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ders/Konu</label>
+                            <input type="text" class="form-control" id="examSubject" placeholder="Örn: Matematik" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tarih ve Saat</label>
+                            <input type="text" class="form-control" id="examDateTime" placeholder="Tarih ve saat seçin" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sınav Süresi (Dakika)</label>
+                            <input type="number" class="form-control" id="examDuration" placeholder="Örn: 90" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Notlar (İsteğe bağlı)</label>
+                            <textarea class="form-control" id="examNotes" rows="3" placeholder="Sınav hakkında ek notlar..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                Sınavı Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sınav Listesi Kartı -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-list"></i>
+                    Kayıtlı Sınavlar
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="examList" class="exam-list">
+                    <!-- JavaScript ile doldurulacak -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Bildirim -->
+    <div class="toast-container"></div>
+
+    <!-- Script Kütüphaneleri -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+    <!-- Google Calendar API -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <!-- FullCalendar Kütüphanesi -->
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.js'></script>
+
+    <script>
+        // Google Calendar API Yapılandırması
+        const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Google Cloud Console'dan alınacak
+        const API_KEY = 'YOUR_GOOGLE_API_KEY'; // Google Cloud Console'dan alınacak
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+
+        // Site Yapılandırması
+        const SITE_URL = 'https://www.sentezedu.net';
+        const API_BASE_URL = 'https://www.sentezedu.net/api';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        // Google API'lerini yükle
+        function initializeGoogleAPI() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+            maybeEnableButtons();
+        }
+
+        function initializeGoogleIdentity() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // Tanımlanacak
+            });
+            gisInited = true;
+            maybeEnableButtons();
+        }
+
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                document.getElementById('googleCalendarBtn').disabled = false;
+            }
+        }
+
+        // Google Calendar'a etkinlik ekleme
+        async function addToGoogleCalendar(examData) {
+            try {
+                const event = {
+                    'summary': examData.title,
+                    'description': `Ders: ${examData.subject}\nNotlar: ${examData.notes || 'Belirtilmedi'}`,
+                    'start': {
+                        'dateTime': new Date(examData.dateTime).toISOString(),
+                        'timeZone': 'Europe/Istanbul'
+                    },
+                    'end': {
+                        'dateTime': new Date(new Date(examData.dateTime).getTime() + examData.duration * 60000).toISOString(),
+                        'timeZone': 'Europe/Istanbul'
+                    }
+                };
+
+                const request = gapi.client.calendar.events.insert({
+                    'calendarId': 'primary',
+                    'resource': event
+                });
+
+                const response = await request.execute();
+                if (response.id) {
+                    showToast('Sınav Google Takvim\'e başarıyla eklendi!', 'success');
+                }
+            } catch (error) {
+                showToast('Google Takvim\'e eklenirken bir hata oluştu!', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        // Sayfa yüklendiğinde oturum kontrolü
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            initializeFlatpickr();
+            loadExams();
+            setupEventListeners();
+            initializeGoogleAPI();
+            initializeGoogleIdentity();
+        });
+
+        // Oturum kontrolü
+        function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+
+            // API'den token doğrulama
+            fetch(`${API_BASE_URL}/verify-token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Token geçersiz');
+                }
+                return response.json();
+            })
+            .catch(error => {
+                console.error('Token doğrulama hatası:', error);
+                window.location.href = '/admin/login.html';
+            });
+
+            document.getElementById('adminName').textContent = user.username || 'Yönetici';
+            document.getElementById('adminEmail').textContent = user.email || 'admin@sentezedu.net';
+        }
+
+        // Flatpickr başlatma
+        function initializeFlatpickr() {
+            flatpickr("#examDateTime", {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                locale: "tr",
+                time_24hr: true,
+                minDate: "today",
+                position: "auto"
+            });
+        }
+
+        // Event listener'ları ayarlama
+        function setupEventListeners() {
+            // Çıkış yapma
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminUser');
+                window.location.href = '/admin/login.html';
+            });
+
+            // Form gönderimi
+            document.getElementById('examForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const examData = await saveExam();
+                if (examData && confirm('Sınavı Google Takvim\'e eklemek ister misiniz?')) {
+                    addToGoogleCalendar(examData);
+                }
+            });
+        }
+
+        // Sınav kaydetme
+        async function saveExam() {
+            const examData = {
+                title: document.getElementById('examName').value,
+                subject: document.getElementById('examSubject').value,
+                dateTime: document.getElementById('examDateTime').value,
+                duration: document.getElementById('examDuration').value,
+                notes: document.getElementById('examNotes').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/exams`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                    },
+                    body: JSON.stringify(examData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('API hatası');
+                }
+
+                const result = await response.json();
+                showToast('Sınav başarıyla kaydedildi!', 'success');
+                document.getElementById('examForm').reset();
+                loadExams();
+                return result;
+            } catch (error) {
+                showToast('Sınav kaydedilirken bir hata oluştu!', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        // Sınavları yükleme
+        async function loadExams() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/exams`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('API hatası');
+                }
+
+                const exams = await response.json();
+                const examList = document.getElementById('examList');
+                
+                if (exams.length === 0) {
+                    examList.innerHTML = '<div class="text-center text-muted">Henüz sınav eklenmemiş</div>';
+                    return;
+                }
+
+                examList.innerHTML = exams.map(exam => `
+                    <div class="exam-item" data-id="${exam.id}">
+                        <div class="exam-info">
+                            <div class="exam-title">${exam.title}</div>
+                            <div class="exam-details">
+                                <i class="fas fa-book me-1"></i> ${exam.subject} |
+                                <i class="fas fa-calendar me-1"></i> ${new Date(exam.dateTime).toLocaleDateString('tr-TR')} |
+                                <i class="fas fa-clock me-1"></i> ${new Date(exam.dateTime).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})} |
+                                <i class="fas fa-hourglass-half me-1"></i> ${exam.duration} dakika
+                            </div>
+                        </div>
+                        <div class="exam-actions">
+                            <button class="btn-icon btn-edit" onclick="editExam(${exam.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="deleteExam(${exam.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showToast('Sınavlar yüklenirken bir hata oluştu!', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        // Sınav düzenleme
+        function editExam(id) {
+            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            const exam = exams.find(e => e.id === id);
+            
+            if (exam) {
+                document.getElementById('examName').value = exam.title;
+                document.getElementById('examSubject').value = exam.subject;
+                document.getElementById('examDateTime').value = exam.dateTime;
+                document.getElementById('examDuration').value = exam.duration;
+                document.getElementById('examNotes').value = exam.notes || '';
+                
+                // Düzenleme moduna geç
+                document.querySelector('.card-title').innerHTML = '<i class="fas fa-edit"></i> Sınavı Düzenle';
+                document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save me-2"></i> Değişiklikleri Kaydet';
+                
+                // Scroll to form
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Sınav silme
+        function deleteExam(id) {
+            if (confirm('Bu sınavı silmek istediğinizden emin misiniz?')) {
+                const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+                const newExams = exams.filter(e => e.id !== id);
+                localStorage.setItem('exams', JSON.stringify(newExams));
+                
+                showToast('Sınav başarıyla silindi!', 'success');
+                loadExams();
+            }
+        }
+
+        // Toast bildirimi gösterme
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}" 
+                   style="color: ${type === 'success' ? 'var(--success-color)' : 'var(--danger-color)'}"></i>
+                <div>${message}</div>
+            `;
+            document.querySelector('.toast-container').appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

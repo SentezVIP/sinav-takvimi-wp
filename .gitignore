@@ -1,0 +1,7 @@
+.DS_Store
+.vscode/
+*.code-workspace
+.cursorrules
+html.html
+index.js
+index.php

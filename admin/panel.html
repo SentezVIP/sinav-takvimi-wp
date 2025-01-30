@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetici Paneli - Sınav Takvimi</title>
+    
+    <!-- Temel Stil Kütüphaneleri -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Flatpickr Takvim Kütüphanesi -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-calendar-alt"></i>
+                Sınav Takvimi Yönetimi
+            </a>
+            <div class="admin-info ms-auto">
+                <div class="admin-avatar">A</div>
+                <div class="admin-details">
+                    <span id="adminName">Admin</span>
+                    <a href="#" id="logoutBtn" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Çıkış Yap
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ana İçerik -->
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-plus-circle"></i>
+                    Yeni Sınav Ekle
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="examForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sınav Düzeyi</label>
+                            <select class="form-control" id="sinavDuzeyi" onchange="sinavTuruGuncelle()" required>
+                                <option value="">Seçiniz</option>
+                                <option value="YKS">YKS</option>
+                                <option value="LGS">LGS</option>
+                                <option value="11SINIF">11.Sınıf</option>
+                                <option value="7SINIF">7.Sınıf</option>
+                                <option value="BURSLULUK">Bursluluk Sınavı</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sınav Türü</label>
+                            <div id="sinavTuruContainer">
+                                <select class="form-control" id="yksTurleri" style="display: none;" multiple>
+                                    <option value="TYT">TYT</option>
+                                    <option value="AYT">AYT</option>
+                                </select>
+                                
+                                <select class="form-control" id="lgsTurleri" style="display: none;" multiple>
+                                    <option value="SOZEL">Sözel</option>
+                                    <option value="SAYISAL">Sayısal</option>
+                                </select>
+                                
+                                <input type="text" class="form-control" id="digerTur" style="display: none;" readonly>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tarih ve Saat</label>
+                            <input type="text" class="form-control" id="examDateTime" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sınav Süresi (Dakika)</label>
+                            <input type="number" class="form-control" id="examDuration" required>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Notlar</label>
+                            <textarea class="form-control" id="examNotes" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>
+                            Sınavı Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sınav Listesi -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-list"></i>
+                    Sınav Listesi
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="examList" class="exam-list">
+                    <!-- Sınavlar buraya dinamik olarak eklenecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Bildirimleri -->
+    <div class="toast-container"></div>
+
+    <!-- Gerekli Script'ler -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+
+    <script>
+        let currentEditingId = null;
+
+        // API endpoint'lerini WordPress'e uygun hale getirme
+        const API_BASE_URL = '/wp-json/sinav-takvimi/v1';
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            initializeFlatpickr();
+            loadExams();
+            setupEventListeners();
+        });
+
+        // Oturum kontrolü
+        function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = '/admin/login.html';
+            }
+        }
+
+        // Flatpickr başlatma
+        function initializeFlatpickr() {
+            flatpickr("#examDateTime", {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                locale: "tr",
+                time_24hr: true,
+                minDate: "today"
+            });
+        }
+
+        // Event listener'ları ayarlama
+        function setupEventListeners() {
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('adminToken');
+                window.location.href = '/admin/login.html';
+            });
+
+            document.getElementById('examForm').addEventListener('submit', handleFormSubmit);
+        }
+
+        // Form gönderimi
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            await saveExam();
+        }
+
+        // Sınav türü güncelleme
+        function sinavTuruGuncelle() {
+            const sinavDuzeyi = document.getElementById('sinavDuzeyi').value;
+            const yksTurleri = document.getElementById('yksTurleri');
+            const lgsTurleri = document.getElementById('lgsTurleri');
+            const digerTur = document.getElementById('digerTur');
+            
+            yksTurleri.style.display = 'none';
+            lgsTurleri.style.display = 'none';
+            digerTur.style.display = 'none';
+            
+            switch(sinavDuzeyi) {
+                case 'YKS':
+                    yksTurleri.style.display = 'block';
+                    break;
+                case 'LGS':
+                    lgsTurleri.style.display = 'block';
+                    break;
+                case '11SINIF':
+                case '7SINIF':
+                case 'BURSLULUK':
+                    digerTur.style.display = 'block';
+                    digerTur.value = sinavDuzeyi;
+                    break;
+            }
+        }
+
+        // Sınav kaydetme
+        async function saveExam() {
+            const sinavDuzeyi = document.getElementById('sinavDuzeyi').value;
+            let sinavTuru = [];
+            
+            if (sinavDuzeyi === 'YKS') {
+                sinavTuru = Array.from(document.getElementById('yksTurleri').selectedOptions)
+                    .map(option => option.value);
+            } else if (sinavDuzeyi === 'LGS') {
+                sinavTuru = Array.from(document.getElementById('lgsTurleri').selectedOptions)
+                    .map(option => option.value);
+            } else {
+                sinavTuru = [sinavDuzeyi];
+            }
+
+            const examData = {
+                sinavDuzeyi: sinavDuzeyi,
+                sinavTuru: sinavTuru,
+                dateTime: document.getElementById('examDateTime').value,
+                duration: document.getElementById('examDuration').value,
+                notes: document.getElementById('examNotes').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/exams`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpApiSettings.nonce
+                    },
+                    body: JSON.stringify(examData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Sınav başarıyla kaydedildi!', 'success');
+                    resetForm();
+                    loadExams();
+                } else {
+                    showToast('İşlem sırasında bir hata oluştu!', 'error');
+                    console.error('Error:', result.data);
+                }
+            } catch (error) {
+                showToast('İşlem sırasında bir hata oluştu!', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        // Form resetleme
+        function resetForm() {
+            document.getElementById('examForm').reset();
+            document.querySelector('.card-title').innerHTML = 
+                '<i class="fas fa-plus-circle"></i> Yeni Sınav Ekle';
+            document.querySelector('button[type="submit"]').innerHTML = 
+                '<i class="fas fa-save me-2"></i> Sınavı Kaydet';
+            
+            const yksTurleri = document.getElementById('yksTurleri');
+            const lgsTurleri = document.getElementById('lgsTurleri');
+            Array.from(yksTurleri.options).forEach(option => option.selected = false);
+            Array.from(lgsTurleri.options).forEach(option => option.selected = false);
+            
+            currentEditingId = null;
+            sinavTuruGuncelle();
+        }
+
+        // Sınavları yükleme
+        function loadExams() {
+            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            const examList = document.getElementById('examList');
+            
+            if (exams.length === 0) {
+                examList.innerHTML = '<div class="text-center text-muted">Henüz sınav eklenmemiş</div>';
+                return;
+            }
+
+            examList.innerHTML = exams.map(exam => `
+                <div class="exam-item" data-id="${exam.id}">
+                    <div class="exam-info">
+                        <div class="exam-title">${exam.sinavDuzeyi}</div>
+                        <div class="exam-details">
+                            <i class="fas fa-book me-1"></i> ${exam.sinavTuru.join(', ')} |
+                            <i class="fas fa-calendar me-1"></i> ${new Date(exam.dateTime).toLocaleDateString('tr-TR')} |
+                            <i class="fas fa-clock me-1"></i> ${new Date(exam.dateTime).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})} |
+                            <i class="fas fa-hourglass-half me-1"></i> ${exam.duration} dakika
+                        </div>
+                    </div>
+                    <div class="exam-actions">
+                        <button class="btn-icon btn-edit" onclick="editExam(${exam.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon btn-delete" onclick="deleteExam(${exam.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Sınav düzenleme
+        function editExam(id) {
+            currentEditingId = id;
+            
+            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            const exam = exams.find(e => e.id === id);
+            
+            if (exam) {
+                document.getElementById('sinavDuzeyi').value = exam.sinavDuzeyi;
+                sinavTuruGuncelle();
+                
+                setTimeout(() => {
+                    if (exam.sinavDuzeyi === 'YKS' || exam.sinavDuzeyi === 'LGS') {
+                        const selectElement = document.getElementById(
+                            exam.sinavDuzeyi === 'YKS' ? 'yksTurleri' : 'lgsTurleri'
+                        );
+                        
+                        Array.from(selectElement.options).forEach(option => option.selected = false);
+                        
+                        exam.sinavTuru.forEach(tur => {
+                            Array.from(selectElement.options).forEach(option => {
+                                if (option.value === tur) option.selected = true;
+                            });
+                        });
+                    }
+                }, 100);
+                
+                document.getElementById('examDateTime').value = exam.dateTime;
+                document.getElementById('examDuration').value = exam.duration;
+                document.getElementById('examNotes').value = exam.notes || '';
+                
+                document.querySelector('.card-title').innerHTML = 
+                    '<i class="fas fa-edit"></i> Sınavı Düzenle';
+                document.querySelector('button[type="submit"]').innerHTML = 
+                    '<i class="fas fa-save me-2"></i> Değişiklikleri Kaydet';
+                
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Sınav silme
+        async function deleteExam(id) {
+            if (confirm('Bu sınavı silmek istediğinizden emin misiniz?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/exams/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-WP-Nonce': wpApiSettings.nonce
+                        }
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showToast('Sınav başarıyla silindi!', 'success');
+                        loadExams();
+                        
+                        if (currentEditingId === id) {
+                            resetForm();
+                        }
+                    } else {
+                        showToast('Sınav silinirken bir hata oluştu!', 'error');
+                        console.error('Error:', result.data);
+                    }
+                } catch (error) {
+                    showToast('Sınav silinirken bir hata oluştu!', 'error');
+                    console.error('Error:', error);
+                }
+            }
+        }
+
+        // Toast bildirimi
+        function showToast(message, type = 'success') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toast = document.createElement('div');
+            
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}" 
+                   style="color: ${type === 'success' ? 'var(--success-color)' : 'var(--danger-color)'}"></i>
+                <div>${message}</div>
+            `;
+            
+            while (toastContainer.firstChild) {
+                toastContainer.removeChild(toastContainer.firstChild);
+            }
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 
